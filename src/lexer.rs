@@ -49,6 +49,7 @@ pub enum TokenKind {
     CloseCurly,
     Bar,
     Bang,
+    Question,
 
     // Binary Operators
     Plus,
@@ -102,6 +103,7 @@ impl fmt::Display for TokenKind {
             Caret => write!(f, "caret"),
             Bar => write!(f, "bar"),
             Bang => write!(f, "bang"),
+            Question => write!(f, "question"),
             End => write!(f, "end of input"),
         }
     }
@@ -210,6 +212,7 @@ impl<Chars: Iterator<Item=char>> Lexer<Chars> {
                     '}' => Token {kind: TokenKind::CloseCurly, text, loc},
                     '|' => Token {kind: TokenKind::Bar,        text, loc},
                     '!' => Token {kind: TokenKind::Bang,       text, loc},
+                    '?' => Token {kind: TokenKind::Question,   text, loc},
                     '"' => {
                         // TODO: no support for escaped sequences inside of string literals
                         text.clear();

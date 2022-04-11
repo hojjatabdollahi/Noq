@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use std::io::{stdin, stdout};
 use std::io::Write;
 use std::fmt;
@@ -438,6 +438,17 @@ enum Rule {
     Replace,
 }
 
+impl Display for Rule {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: Create a better display for the rules
+        match self {
+            Self::User { loc:_loc, head, body } => println!("{:?} = {:?}", head, body),
+            Self::Replace => println!("Replace"),
+        }
+        Ok(())
+    }
+}
+
 enum Strategy {
     All,
     Deep,
@@ -603,6 +614,7 @@ enum Command {
     Quit,
     DeleteRule(Loc, String),
     Load(Loc, String),
+    Help(Loc, Option<String>),
 }
 
 impl Command {
@@ -629,6 +641,13 @@ impl Command {
             TokenKind::Delete => {
                 let keyword = lexer.next_token();
                 Ok(Command::DeleteRule(keyword.loc, expect_token_kind(lexer, TokenKind::Ident)?.text))
+            }
+            TokenKind::Question => {
+                let keyword = lexer.next_token();
+                Ok(Command::Help(
+                    keyword.loc,
+                    expect_token_kind(lexer, TokenKind::Ident).map_or(None, |res| Some(res.text)),
+                ))
             }
             _ => {
                 let expr = Expr::parse(lexer)?;
@@ -824,6 +843,39 @@ impl Context {
                     return Err(RuntimeError::RuleDoesNotExist(name, loc).into());
                 }
             }
+            Command::Help(loc, nameopt) => match nameopt {
+                Some(name) => {
+                    if self.rules.contains_key(&name) {
+                        // TODO: Print out the matching pattern for this rule
+                        // (one index per line, the match will be in yellow)
+                        // This makes it easier to choose the index to which this rule applies
+                        //
+                        // E.g. 
+                        // noq> sum_comm :: A+B=B+A
+                        // defined rule `sum_comm`
+                        // noq> (A+B)+C {
+                        //  => (A + B) + C
+                        // > ?sum_comm
+                        //  => sum_comm :: A+B=B+A
+                        //  => index 0: [YELLOW](A + B) + C[/YELLOW]
+                        //  => index 1: [YELLOW](A + B)[/YELLOW] + C
+                        // > 1 | sum_comm
+                        //  => (B + A) + C
+                        // }
+                        // noq>
+                        //
+                        println!("{}", self.rules.get(&name).unwrap());
+                    } else {
+                        return Err(RuntimeError::RuleDoesNotExist(name, loc).into());
+                    }
+                }
+                None => {
+                    // TODO: print out all the available rules
+                    for rule in &self.rules {
+                        println!("{}: {}", rule.0, rule.1);
+                    }
+                }
+            },
         }
         Ok(())
     }
